@@ -188,6 +188,13 @@ S3_ENDPOINT=https://&lt;account-id&gt;.r2.cloudflarestorage.com</pre>
     <li>ב-Twilio, הגדירו את Webhook ההודעות הנכנסות ל: <code>https://your-domain/api/whatsapp/webhook</code> (POST).</li>
     <li>הגדירו במערכת את <code>TWILIO_AUTH_TOKEN</code> כדי לאמת שהבקשות מגיעות מ-Twilio, ובעמוד "וואטסאפ" הזינו את מספר הקליניקה והפעילו את השירות.</li>
   </ol>
+  <h2>תזכורות וואטסאפ יוצאות</h2>
+  <p>לשליחת תזכורות אמיתיות (ולא במצב סימולציה) הגדירו גם:</p>
+  <pre>TWILIO_ACCOUNT_SID=ACxxxxxxxx
+TWILIO_AUTH_TOKEN=xxxxxxxx
+TWILIO_WHATSAPP_FROM=+14155238886</pre>
+  <p>כשהשרת פעיל, תזכורות נשלחות אוטומטית כל 5 דקות. בפריסה ללא שרת קבוע (serverless) הפעילו משימה מתוזמנת שקוראת ל:</p>
+  <pre>curl -X POST -H "x-cron-secret: $REMINDERS_CRON_SECRET" https://your-domain/api/reminders/run</pre>
   <p>דוגמה לקובץ <code>.env</code>:</p>
   <pre>SESSION_SECRET=replace-with-a-long-random-string
 DATABASE_FILE=./data/tipulog.db</pre>

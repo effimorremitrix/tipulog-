@@ -107,7 +107,21 @@ function bootstrap(sqlite: Database.Database) {
       work_start TEXT NOT NULL DEFAULT '09:00',
       work_end TEXT NOT NULL DEFAULT '17:00',
       slot_minutes INTEGER NOT NULL DEFAULT 60,
-      default_price REAL NOT NULL DEFAULT 350
+      default_price REAL NOT NULL DEFAULT 350,
+      reminder_enabled INTEGER NOT NULL DEFAULT 0,
+      reminder_hours_before INTEGER NOT NULL DEFAULT 24,
+      reminder_template TEXT
+    );
+    CREATE TABLE IF NOT EXISTS reminders (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      user_id INTEGER NOT NULL REFERENCES users(id),
+      appointment_id INTEGER NOT NULL UNIQUE REFERENCES appointments(id),
+      patient_id INTEGER NOT NULL REFERENCES patients(id),
+      phone TEXT NOT NULL,
+      message TEXT NOT NULL,
+      status TEXT NOT NULL,
+      detail TEXT,
+      sent_at TEXT NOT NULL DEFAULT (datetime('now'))
     );
     CREATE TABLE IF NOT EXISTS whatsapp_sessions (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -123,15 +137,19 @@ function bootstrap(sqlite: Database.Database) {
     CREATE INDEX IF NOT EXISTS idx_notes_patient ON session_notes(patient_id);
     CREATE INDEX IF NOT EXISTS idx_payments_user_date ON payments(user_id, date);
   `);
-  // Lightweight migration for databases created before the column existed.
-  const apptCols = sqlite
-    .prepare("PRAGMA table_info(appointments)")
-    .all() as { name: string }[];
-  if (!apptCols.some((c) => c.name === "source")) {
-    sqlite.exec(
-      "ALTER TABLE appointments ADD COLUMN source TEXT NOT NULL DEFAULT 'manual'"
-    );
-  }
+  // Lightweight migrations for databases created before these columns existed.
+  const addMissing = (table: string, column: string, ddl: string) => {
+    const cols = sqlite
+      .prepare(`PRAGMA table_info(${table})`)
+      .all() as { name: string }[];
+    if (!cols.some((c) => c.name === column)) {
+      sqlite.exec(`ALTER TABLE ${table} ADD COLUMN ${ddl}`);
+    }
+  };
+  addMissing("appointments", "source", "source TEXT NOT NULL DEFAULT 'manual'");
+  addMissing("settings", "reminder_enabled", "reminder_enabled INTEGER NOT NULL DEFAULT 0");
+  addMissing("settings", "reminder_hours_before", "reminder_hours_before INTEGER NOT NULL DEFAULT 24");
+  addMissing("settings", "reminder_template", "reminder_template TEXT");
 }
 
 const sqlite = globalForDb.tipulogSqlite ?? createConnection();
