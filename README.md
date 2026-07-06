@@ -15,6 +15,12 @@ social workers, coaches). Hebrew, RTL, built with Next.js.
   note templates ("smart form" skeletons) managed in a dedicated screen.
 - **תשלומים (Billing lite)** – record payments (cash / transfer / check / card), automatic
   running receipt numbers, per-patient balance (completed sessions − payments), printable receipt.
+- **מסמכים (Documents)** – upload files to a patient's file (up to 20MB each); stored on local
+  disk by default or in any S3-compatible cloud storage (AWS S3 / Cloudflare R2 / Backblaze / MinIO).
+- **וואטסאפ (WhatsApp bot)** – patients book, view and cancel appointments by messaging the
+  clinic's WhatsApp number. Free slots are computed from working hours and the live calendar.
+  Twilio-compatible webhook (`/api/whatsapp/webhook`) + a built-in chat simulator to try the
+  flow without any external account.
 - **דוחות (Reports)** – sessions log and collections reports with date-range filter and
   CSV export (UTF-8 BOM so Hebrew opens correctly in Excel).
 - **לוח בקרה (Dashboard)** – today's schedule, weekly session count, active patients,
@@ -56,6 +62,19 @@ Or register a fresh account at `/register`.
 | --- | --- | --- |
 | `SESSION_SECRET` | dev fallback | Secret for signing session JWTs — set in production |
 | `DATABASE_FILE` | `./data/tipulog.db` | SQLite database location |
+| `UPLOADS_DIR` | `./data/uploads` | Local document storage directory |
+| `STORAGE_DRIVER` | `local` | Set to `s3` to store documents in S3-compatible cloud storage |
+| `S3_BUCKET` / `S3_REGION` / `S3_ACCESS_KEY_ID` / `S3_SECRET_ACCESS_KEY` / `S3_ENDPOINT` | – | Cloud storage credentials (`S3_ENDPOINT` only for non-AWS providers like Cloudflare R2) |
+| `TWILIO_AUTH_TOKEN` | – | When set, incoming WhatsApp webhooks are signature-validated |
+| `WHATSAPP_WEBHOOK_URL` | request URL | Public webhook URL used for signature validation behind proxies |
+
+### WhatsApp booking
+
+Configure working hours, slot length and default price in the **וואטסאפ** screen, enable the
+feature, and try it with the built-in simulator. For real traffic, connect a WhatsApp Business
+sender via Twilio and point its incoming-message webhook to `POST /api/whatsapp/webhook`.
+Patients are matched by their phone number in the patient file; appointments booked this way
+appear in the calendar marked "נקבע בוואטסאפ".
 
 ## Project structure
 

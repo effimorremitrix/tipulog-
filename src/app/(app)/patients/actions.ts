@@ -4,9 +4,12 @@ import { and, eq } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { db } from "@/db";
-import { patients, sessionNotes } from "@/db/schema";
+import { documents, patients, sessionNotes } from "@/db/schema";
 import { requireUser } from "@/lib/auth";
 import { todayISO } from "@/lib/format";
+import { deleteFile, makeKey, saveFile } from "@/lib/storage";
+
+const MAX_UPLOAD_BYTES = 20 * 1024 * 1024;
 
 function patientValues(formData: FormData) {
   const str = (k: string) => String(formData.get(k) ?? "").trim() || null;
@@ -73,6 +76,57 @@ export async function createSessionNote(formData: FormData) {
   });
   revalidatePath(`/patients/${patientId}`);
   redirect(`/patients/${patientId}?tab=notes`);
+}
+
+export async function uploadDocument(formData: FormData) {
+  const user = await requireUser();
+  const patientId = Number(formData.get("patientId"));
+  const file = formData.get("file");
+
+  const patient = await db.query.patients.findFirst({
+    where: and(eq(patients.id, patientId), eq(patients.userId, user.id)),
+  });
+  if (
+    !patient ||
+    !(file instanceof File) ||
+    file.size === 0 ||
+    file.size > MAX_UPLOAD_BYTES
+  ) {
+    redirect(`/patients/${patientId}?tab=documents&error=1`);
+  }
+
+  const key = makeKey(user.id, file.name);
+  const driver = await saveFile(
+    key,
+    Buffer.from(await file.arrayBuffer()),
+    file.type || "application/octet-stream"
+  );
+  await db.insert(documents).values({
+    userId: user.id,
+    patientId,
+    fileName: file.name,
+    storedKey: key,
+    mimeType: file.type || "application/octet-stream",
+    size: file.size,
+    storage: driver,
+  });
+  revalidatePath(`/patients/${patientId}`);
+  redirect(`/patients/${patientId}?tab=documents`);
+}
+
+export async function deleteDocument(documentId: number, patientId: number) {
+  const user = await requireUser();
+  const doc = await db.query.documents.findFirst({
+    where: and(eq(documents.id, documentId), eq(documents.userId, user.id)),
+  });
+  if (doc) {
+    await deleteFile(doc.storedKey, doc.storage as "local" | "s3");
+    await db
+      .delete(documents)
+      .where(and(eq(documents.id, documentId), eq(documents.userId, user.id)));
+  }
+  revalidatePath(`/patients/${patientId}`);
+  redirect(`/patients/${patientId}?tab=documents`);
 }
 
 export async function deleteSessionNote(noteId: number, patientId: number) {

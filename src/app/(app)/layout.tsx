@@ -7,6 +7,7 @@ const NAV = [
   { href: "/calendar", label: "יומן", icon: "📅" },
   { href: "/patients", label: "מטופלים", icon: "🗂️" },
   { href: "/payments", label: "תשלומים", icon: "💳" },
+  { href: "/whatsapp", label: "וואטסאפ", icon: "💬" },
   { href: "/reports", label: "דוחות", icon: "📈" },
   { href: "/templates", label: "תבניות סיכום", icon: "📝" },
 ];
