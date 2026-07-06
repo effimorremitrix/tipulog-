@@ -1,0 +1,225 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="utf-8">
+<title>טיפולוג – מדריך התקנה מקומית</title>
+<style>
+  * { box-sizing: border-box; }
+  body {
+    font-family: "Noto Sans Hebrew", "DejaVu Sans", sans-serif;
+    color: #132a30;
+    font-size: 11pt;
+    line-height: 1.65;
+    margin: 0;
+  }
+  .title-page {
+    height: 250mm;
+    display: flex; flex-direction: column; justify-content: center; align-items: center;
+    text-align: center;
+  }
+  .title-page .logo { font-size: 42pt; font-weight: 700; color: #0f766e; }
+  .title-page .subtitle { font-size: 16pt; color: #4b5f63; margin-top: 8mm; }
+  .title-page .doc-type { font-size: 22pt; margin-top: 20mm; font-weight: 700; }
+  .title-page .version { color: #8aa0a4; margin-top: 30mm; font-size: 10pt; }
+  h1 {
+    color: #0f766e; font-size: 18pt; border-bottom: 2.5pt solid #0d9488;
+    padding-bottom: 2mm; margin: 0 0 5mm 0; page-break-after: avoid;
+  }
+  .chapter { page-break-before: always; }
+  h2 { color: #0f766e; font-size: 13.5pt; margin: 7mm 0 2.5mm 0; page-break-after: avoid; }
+  p { margin: 0 0 3mm 0; }
+  ul, ol { margin: 0 0 3mm 0; padding-right: 7mm; }
+  li { margin-bottom: 1.5mm; }
+  pre {
+    direction: ltr; text-align: left;
+    font-family: "DejaVu Sans Mono", monospace; font-size: 9.5pt;
+    background: #0f2e33; color: #d9f2ee; border-radius: 2mm;
+    padding: 3.5mm 4.5mm; margin: 2.5mm 0 4mm 0;
+    white-space: pre-wrap; page-break-inside: avoid;
+  }
+  code, kbd {
+    font-family: "DejaVu Sans Mono", monospace; direction: ltr; unicode-bidi: embed;
+    background: #eef3f4; border-radius: 1mm; padding: 0.3mm 1.5mm; font-size: 9.5pt;
+  }
+  .tip {
+    background: #f0fdfa; border-right: 3pt solid #0d9488; padding: 3mm 4mm;
+    border-radius: 1.5mm; margin: 3mm 0; font-size: 10pt; page-break-inside: avoid;
+  }
+  .tip b { color: #0f766e; }
+  .warn {
+    background: #fff7ed; border-right: 3pt solid #f59e0b; padding: 3mm 4mm;
+    border-radius: 1.5mm; margin: 3mm 0; font-size: 10pt; page-break-inside: avoid;
+  }
+  .warn b { color: #b45309; }
+  table { border-collapse: collapse; width: 100%; margin: 3mm 0; font-size: 10pt; }
+  th, td { border: 0.7pt solid #c9d6d8; padding: 2mm 3mm; text-align: right; }
+  th { background: #f0fdfa; color: #0f766e; }
+  .toc li { margin-bottom: 2mm; }
+</style>
+</head>
+<body>
+
+<div class="title-page">
+  <div class="logo">טיפולוג</div>
+  <div class="subtitle">מערכת ניהול קליניקה למטפלים פרטיים</div>
+  <div class="doc-type">מדריך התקנה והפעלה מקומית</div>
+  <div class="version">גרסה 1.0 · יולי 2026</div>
+</div>
+
+<div class="chapter">
+  <h1>תוכן העניינים</h1>
+  <ol class="toc">
+    <li>סקירה – איך המערכת בנויה</li>
+    <li>דרישות מוקדמות</li>
+    <li>הורדת הקוד</li>
+    <li>התקנה והפעלה ראשונה</li>
+    <li>הפעלה שוטפת (מצב ייצור)</li>
+    <li>הגדרות מתקדמות</li>
+    <li>גיבוי ושחזור נתונים</li>
+    <li>פתרון תקלות נפוצות</li>
+  </ol>
+</div>
+
+<div class="chapter">
+  <h1>1. סקירה – איך המערכת בנויה</h1>
+  <p>טיפולוג היא אפליקציית ווב הרצה על המחשב שלכם. אין צורך בשרת חיצוני, בשירות ענן או בבסיס נתונים נפרד:</p>
+  <ul>
+    <li>המערכת בנויה על <b>Next.js</b> (סביבת Node.js) ורצה כתהליך אחד במחשב.</li>
+    <li>כל הנתונים נשמרים בקובץ <b>SQLite</b> יחיד: <code>data/tipulog.db</code> בתוך תיקיית הפרויקט. הקובץ נוצר אוטומטית בהפעלה הראשונה.</li>
+    <li>הגישה למערכת היא דרך הדפדפן, בכתובת <code>http://localhost:3000</code>.</li>
+  </ul>
+  <div class="tip"><b>המשמעות:</b> הנתונים הרפואיים נשארים אצלכם במחשב בלבד. גיבוי = העתקת קובץ אחד (ראו פרק 7).</div>
+</div>
+
+<div class="chapter">
+  <h1>2. דרישות מוקדמות</h1>
+  <table>
+    <tr><th>רכיב</th><th>גרסה נדרשת</th><th>בדיקה</th></tr>
+    <tr><td>Node.js</td><td>18 ומעלה (מומלץ 22)</td><td><code>node --version</code></td></tr>
+    <tr><td>npm</td><td>מותקן יחד עם Node.js</td><td><code>npm --version</code></td></tr>
+    <tr><td>Git</td><td>כל גרסה עדכנית (לא חובה – אפשר ZIP)</td><td><code>git --version</code></td></tr>
+  </table>
+  <h2>התקנת Node.js</h2>
+  <ul>
+    <li><b>Windows / macOS:</b> הורידו את גרסת ה-LTS מהאתר הרשמי <code>https://nodejs.org</code> והריצו את קובץ ההתקנה.</li>
+    <li><b>macOS עם Homebrew:</b> <code>brew install node</code></li>
+    <li><b>Linux (Ubuntu/Debian):</b></li>
+  </ul>
+  <pre>curl -fsSL https://deb.nodesource.com/setup_22.x | sudo -E bash -
+sudo apt-get install -y nodejs</pre>
+  <p>לאחר ההתקנה פתחו טרמינל חדש (ב-Windows: PowerShell או Command Prompt) וודאו ש-<code>node --version</code> מציג גרסה 18 ומעלה.</p>
+</div>
+
+<div class="chapter">
+  <h1>3. הורדת הקוד</h1>
+  <h2>אפשרות א׳ – באמצעות Git (מומלץ)</h2>
+  <pre>git clone https://github.com/effimorremitrix/tipulog-.git
+cd tipulog-</pre>
+  <h2>אפשרות ב׳ – הורדת ZIP</h2>
+  <ol>
+    <li>גלשו לעמוד המאגר ב-GitHub: <code>https://github.com/effimorremitrix/tipulog-</code></li>
+    <li>לחצו על הכפתור הירוק <b>Code</b> → <b>Download ZIP</b>.</li>
+    <li>חלצו את הקובץ לתיקייה נוחה ופתחו טרמינל בתוך התיקייה שחולצה.</li>
+  </ol>
+</div>
+
+<div class="chapter">
+  <h1>4. התקנה והפעלה ראשונה</h1>
+  <p>כל הפקודות מורצות מתוך תיקיית הפרויקט.</p>
+  <h2>שלב 1 – התקנת התלויות</h2>
+  <pre>npm install</pre>
+  <p>ההתקנה אורכת דקה-שתיים ומורידה את כל הספריות הנדרשות לתיקיית <code>node_modules</code>.</p>
+  <h2>שלב 2 (לא חובה) – נתוני הדגמה</h2>
+  <p>כדי להתרשם מהמערכת עם נתונים לדוגמה (מטפלת דמו, 10 מטופלים, פגישות, סיכומים ותשלומים):</p>
+  <pre>npm run db:seed</pre>
+  <p>פרטי הכניסה שנוצרים:</p>
+  <table>
+    <tr><th>אימייל</th><td><code>demo@tipulog.local</code></td></tr>
+    <tr><th>סיסמה</th><td><code>demo1234</code></td></tr>
+  </table>
+  <div class="warn"><b>לשימוש אמיתי:</b> דלגו על שלב זה והירשמו עם חשבון משלכם במסך ההרשמה. אם כבר הרצתם את נתוני הדגמה ותרצו להתחיל נקי – ראו "איפוס המערכת" בפרק 8.</div>
+  <h2>שלב 3 – הפעלה</h2>
+  <pre>npm run dev</pre>
+  <p>כשמופיעה השורה <code>Ready</code>, פתחו דפדפן בכתובת:</p>
+  <pre>http://localhost:3000</pre>
+  <p>תועברו למסך ההתחברות. היכנסו עם משתמש הדמו או לחצו <b>הרשמה</b> ליצירת חשבון חדש.</p>
+  <div class="tip"><b>עצירת המערכת:</b> חזרו לחלון הטרמינל ולחצו <kbd>Ctrl</kbd>+<kbd>C</kbd>.</div>
+</div>
+
+<div class="chapter">
+  <h1>5. הפעלה שוטפת (מצב ייצור)</h1>
+  <p>לעבודה יומיומית מומלץ להריץ במצב ייצור (production) – מהיר ויציב יותר ממצב הפיתוח:</p>
+  <pre>npm run build
+npm start</pre>
+  <p>המערכת תהיה זמינה באותה כתובת: <code>http://localhost:3000</code>. יש להריץ <code>npm run build</code> מחדש רק לאחר עדכון גרסה של הקוד.</p>
+  <h2>הפעלה אוטומטית עם המחשב (רשות)</h2>
+  <p>אפשר להגדיר שהמערכת תעלה אוטומטית: ב-Windows דרך Task Scheduler, ב-macOS דרך launchd, וב-Linux דרך שירות systemd. לחלופין, כלי כמו <code>pm2</code>:</p>
+  <pre>npm install -g pm2
+pm2 start npm --name tipulog -- start
+pm2 save</pre>
+</div>
+
+<div class="chapter">
+  <h1>6. הגדרות מתקדמות</h1>
+  <p>ההגדרות נקבעות באמצעות משתני סביבה (אפשר בקובץ <code>.env</code> בתיקיית הפרויקט):</p>
+  <table>
+    <tr><th>משתנה</th><th>ברירת מחדל</th><th>תפקיד</th></tr>
+    <tr><td><code>SESSION_SECRET</code></td><td>מפתח פיתוח מובנה</td><td>מפתח חתימת ההתחברות. חובה להגדיר ערך אקראי ארוך משלכם בשימוש אמיתי.</td></tr>
+    <tr><td><code>DATABASE_FILE</code></td><td><code>./data/tipulog.db</code></td><td>מיקום קובץ הנתונים. אפשר להפנות לתיקייה מגובה (למשל תיקיית ענן מסונכרנת).</td></tr>
+  </table>
+  <p>דוגמה לקובץ <code>.env</code>:</p>
+  <pre>SESSION_SECRET=replace-with-a-long-random-string
+DATABASE_FILE=./data/tipulog.db</pre>
+  <p>יצירת מחרוזת אקראית למפתח:</p>
+  <pre>node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"</pre>
+  <h2>שינוי פורט</h2>
+  <pre>npm start -- -p 4000</pre>
+  <div class="warn"><b>אבטחה:</b> המערכת מיועדת להרצה מקומית. אל תחשפו אותה לאינטרנט ללא HTTPS, חומת אש והקשחה מתאימה – מדובר במידע רפואי רגיש.</div>
+</div>
+
+<div class="chapter">
+  <h1>7. גיבוי ושחזור נתונים</h1>
+  <h2>גיבוי</h2>
+  <ol>
+    <li>עצרו את המערכת (<kbd>Ctrl</kbd>+<kbd>C</kbd>) או ודאו שאינה באמצע פעולה.</li>
+    <li>העתיקו את קובץ <code>data/tipulog.db</code> למקום בטוח (דיסק חיצוני / ענן).</li>
+  </ol>
+  <pre># דוגמה (macOS / Linux)
+cp data/tipulog.db ~/backups/tipulog-$(date +%F).db</pre>
+  <div class="tip"><b>מומלץ:</b> גיבוי יומי אוטומטי – משימה מתוזמנת שמעתיקה את הקובץ עם תאריך בשם.</div>
+  <h2>שחזור</h2>
+  <ol>
+    <li>עצרו את המערכת.</li>
+    <li>החליפו את <code>data/tipulog.db</code> בקובץ הגיבוי (באותו שם).</li>
+    <li>הפעילו מחדש – כל הנתונים יחזרו למצב הגיבוי.</li>
+  </ol>
+  <h2>מעבר למחשב חדש</h2>
+  <p>התקינו את המערכת במחשב החדש (פרקים 2–4, ללא נתוני דגמה) והעתיקו אליו את קובץ הנתונים – זה הכול.</p>
+</div>
+
+<div class="chapter">
+  <h1>8. פתרון תקלות נפוצות</h1>
+  <h2>‏"port 3000 is already in use"</h2>
+  <p>יש תהליך אחר על הפורט. הריצו על פורט אחר: <code>npm run dev -- -p 3001</code> (וגלשו ל-<code>http://localhost:3001</code>), או סגרו את התהליך התופס את הפורט.</p>
+  <h2>‏שגיאות בזמן npm install</h2>
+  <ul>
+    <li>ודאו גרסת Node עדכנית: <code>node --version</code> (נדרש 18+).</li>
+    <li>ודאו חיבור אינטרנט תקין (נדרש להורדת הספריות בהתקנה בלבד).</li>
+    <li>נסו לנקות ולהתקין מחדש:</li>
+  </ul>
+  <pre>rm -rf node_modules package-lock.json
+npm install</pre>
+  <h2>‏שכחתי את הסיסמה</h2>
+  <p>בגרסה הנוכחית אין שחזור סיסמה עצמאי. אם זהו המשתמש היחיד וטרם הוזנו נתונים חשובים – אפסו את המערכת (למטה). אחרת, פנו למי שמתחזק את ההתקנה לעדכון הסיסמה ישירות בקובץ הנתונים.</p>
+  <h2>‏איפוס המערכת (מחיקת כל הנתונים)</h2>
+  <div class="warn"><b>אזהרה:</b> פעולה בלתי הפיכה – כל המטופלים, הפגישות והתשלומים יימחקו. גבו קודם!</div>
+  <pre># עצרו את המערכת ואז:
+rm -rf data          # Windows: מחקו את התיקייה data בסייר הקבצים
+npm run db:seed      # לא חובה – טעינת נתוני דגמה מחדש
+npm run dev</pre>
+  <h2>‏המסך נטען אך מוצג שיבוש בעברית</h2>
+  <p>ודאו שהדפדפן עדכני (Chrome / Edge / Firefox / Safari בגרסאות האחרונות). המערכת נבדקה בעיקר ב-Chrome.</p>
+</div>
+
+</body>
+</html>
