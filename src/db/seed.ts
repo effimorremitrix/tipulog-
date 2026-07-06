@@ -42,6 +42,8 @@ async function main() {
     userId: user.id,
     whatsappEnabled: 1,
     whatsappNumber: "+972500000000",
+    reminderEnabled: 1,
+    reminderHoursBefore: 24,
     workStart: "09:00",
     workEnd: "17:00",
     slotMinutes: 60,

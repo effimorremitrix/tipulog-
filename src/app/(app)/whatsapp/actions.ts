@@ -5,6 +5,7 @@ import { redirect } from "next/navigation";
 import { requireUser } from "@/lib/auth";
 import { saveSettings } from "@/lib/settings";
 import { handleIncomingWhatsApp } from "@/lib/whatsapp/engine";
+import { runRemindersForUser } from "@/lib/whatsapp/reminders";
 
 export async function saveWhatsappSettings(formData: FormData) {
   const user = await requireUser();
@@ -18,6 +19,25 @@ export async function saveWhatsappSettings(formData: FormData) {
   });
   revalidatePath("/whatsapp");
   redirect("/whatsapp?saved=1");
+}
+
+export async function saveReminderSettings(formData: FormData) {
+  const user = await requireUser();
+  await saveSettings(user.id, {
+    reminderEnabled: formData.get("reminderEnabled") ? 1 : 0,
+    reminderHoursBefore: Math.max(1, Number(formData.get("reminderHoursBefore")) || 24),
+    reminderTemplate: String(formData.get("reminderTemplate") ?? "").trim() || null,
+  });
+  revalidatePath("/whatsapp");
+  redirect("/whatsapp?saved=1");
+}
+
+export async function sendRemindersNow() {
+  const user = await requireUser();
+  const result = await runRemindersForUser(user.id);
+  revalidatePath("/whatsapp");
+  const delivered = result.sent + result.simulated;
+  redirect(`/whatsapp?reminded=${delivered}&failed=${result.failed + result.skippedNoPhone}`);
 }
 
 export async function simulateIncoming(

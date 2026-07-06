@@ -127,6 +127,30 @@ export const settings = sqliteTable("settings", {
   workEnd: text("work_end").notNull().default("17:00"),
   slotMinutes: integer("slot_minutes").notNull().default(60),
   defaultPrice: real("default_price").notNull().default(350),
+  reminderEnabled: integer("reminder_enabled").notNull().default(0),
+  reminderHoursBefore: integer("reminder_hours_before").notNull().default(24),
+  reminderTemplate: text("reminder_template"),
+});
+
+export const reminders = sqliteTable("reminders", {
+  id: integer("id").primaryKey({ autoIncrement: true }),
+  userId: integer("user_id")
+    .notNull()
+    .references(() => users.id),
+  appointmentId: integer("appointment_id")
+    .notNull()
+    .unique()
+    .references(() => appointments.id),
+  patientId: integer("patient_id")
+    .notNull()
+    .references(() => patients.id),
+  phone: text("phone").notNull(),
+  message: text("message").notNull(),
+  status: text("status").notNull(), // sent | simulated | failed
+  detail: text("detail"),
+  sentAt: text("sent_at")
+    .notNull()
+    .default(sql`(datetime('now'))`),
 });
 
 export const whatsappSessions = sqliteTable("whatsapp_sessions", {
@@ -149,3 +173,4 @@ export type NoteTemplate = typeof noteTemplates.$inferSelect;
 export type Payment = typeof payments.$inferSelect;
 export type Document = typeof documents.$inferSelect;
 export type Settings = typeof settings.$inferSelect;
+export type Reminder = typeof reminders.$inferSelect;

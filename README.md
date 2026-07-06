@@ -21,6 +21,11 @@ social workers, coaches). Hebrew, RTL, built with Next.js.
   clinic's WhatsApp number. Free slots are computed from working hours and the live calendar.
   Twilio-compatible webhook (`/api/whatsapp/webhook`) + a built-in chat simulator to try the
   flow without any external account.
+- **תזכורות (WhatsApp reminders)** – automatic reminder to each patient before their
+  appointment (configurable hours-before and message template with placeholders), sent at most
+  once per appointment. Runs on a background scheduler while the server is up, with a manual
+  "send now" button and a cron-friendly endpoint (`POST /api/reminders/run`). Without Twilio
+  credentials reminders run in a visible "simulated" mode.
 - **דוחות (Reports)** – sessions log and collections reports with date-range filter and
   CSV export (UTF-8 BOM so Hebrew opens correctly in Excel).
 - **לוח בקרה (Dashboard)** – today's schedule, weekly session count, active patients,
@@ -65,8 +70,10 @@ Or register a fresh account at `/register`.
 | `UPLOADS_DIR` | `./data/uploads` | Local document storage directory |
 | `STORAGE_DRIVER` | `local` | Set to `s3` to store documents in S3-compatible cloud storage |
 | `S3_BUCKET` / `S3_REGION` / `S3_ACCESS_KEY_ID` / `S3_SECRET_ACCESS_KEY` / `S3_ENDPOINT` | – | Cloud storage credentials (`S3_ENDPOINT` only for non-AWS providers like Cloudflare R2) |
-| `TWILIO_AUTH_TOKEN` | – | When set, incoming WhatsApp webhooks are signature-validated |
+| `TWILIO_AUTH_TOKEN` | – | When set, incoming WhatsApp webhooks are signature-validated; also used for outbound sending |
 | `WHATSAPP_WEBHOOK_URL` | request URL | Public webhook URL used for signature validation behind proxies |
+| `TWILIO_ACCOUNT_SID` / `TWILIO_WHATSAPP_FROM` | – | Outbound WhatsApp sending (reminders). Without them reminders are recorded in "simulated" mode |
+| `REMINDERS_CRON_SECRET` | – | Allows an external cron to trigger `POST /api/reminders/run` for all clinics via the `x-cron-secret` header |
 
 ### WhatsApp booking
 
@@ -75,6 +82,15 @@ feature, and try it with the built-in simulator. For real traffic, connect a Wha
 sender via Twilio and point its incoming-message webhook to `POST /api/whatsapp/webhook`.
 Patients are matched by their phone number in the patient file; appointments booked this way
 appear in the calendar marked "נקבע בוואטסאפ".
+
+### WhatsApp reminders
+
+Enable reminders in the **וואטסאפ** screen and choose how many hours before the appointment to
+send (default 24) and the message template (placeholders: `{שם}`, `{קליניקה}`, `{יום}`,
+`{תאריך}`, `{שעה}`). Each appointment is reminded exactly once. While the server runs, due
+reminders go out automatically every 5 minutes (see `src/instrumentation.ts`); for serverless
+deployments point a cron at `POST /api/reminders/run` with the `x-cron-secret` header. The
+last 10 reminders and their delivery status are shown at the bottom of the screen.
 
 ## Project structure
 

@@ -9,6 +9,9 @@ export const DEFAULT_SETTINGS: Omit<Settings, "userId"> = {
   workEnd: "17:00",
   slotMinutes: 60,
   defaultPrice: 350,
+  reminderEnabled: 0,
+  reminderHoursBefore: 24,
+  reminderTemplate: null,
 };
 
 export async function getSettings(userId: number): Promise<Settings> {
