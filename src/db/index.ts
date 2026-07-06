@@ -89,11 +89,49 @@ function bootstrap(sqlite: Database.Database) {
       note TEXT,
       created_at TEXT NOT NULL DEFAULT (datetime('now'))
     );
+    CREATE TABLE IF NOT EXISTS documents (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      user_id INTEGER NOT NULL REFERENCES users(id),
+      patient_id INTEGER NOT NULL REFERENCES patients(id),
+      file_name TEXT NOT NULL,
+      stored_key TEXT NOT NULL,
+      mime_type TEXT NOT NULL,
+      size INTEGER NOT NULL,
+      storage TEXT NOT NULL DEFAULT 'local',
+      created_at TEXT NOT NULL DEFAULT (datetime('now'))
+    );
+    CREATE TABLE IF NOT EXISTS settings (
+      user_id INTEGER PRIMARY KEY REFERENCES users(id),
+      whatsapp_enabled INTEGER NOT NULL DEFAULT 0,
+      whatsapp_number TEXT,
+      work_start TEXT NOT NULL DEFAULT '09:00',
+      work_end TEXT NOT NULL DEFAULT '17:00',
+      slot_minutes INTEGER NOT NULL DEFAULT 60,
+      default_price REAL NOT NULL DEFAULT 350
+    );
+    CREATE TABLE IF NOT EXISTS whatsapp_sessions (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      user_id INTEGER NOT NULL REFERENCES users(id),
+      phone TEXT NOT NULL,
+      state TEXT NOT NULL DEFAULT '{}',
+      updated_at TEXT NOT NULL DEFAULT (datetime('now'))
+    );
+    CREATE INDEX IF NOT EXISTS idx_documents_patient ON documents(patient_id);
+    CREATE INDEX IF NOT EXISTS idx_wa_sessions_user_phone ON whatsapp_sessions(user_id, phone);
     CREATE INDEX IF NOT EXISTS idx_patients_user ON patients(user_id);
     CREATE INDEX IF NOT EXISTS idx_appointments_user_date ON appointments(user_id, date);
     CREATE INDEX IF NOT EXISTS idx_notes_patient ON session_notes(patient_id);
     CREATE INDEX IF NOT EXISTS idx_payments_user_date ON payments(user_id, date);
   `);
+  // Lightweight migration for databases created before the column existed.
+  const apptCols = sqlite
+    .prepare("PRAGMA table_info(appointments)")
+    .all() as { name: string }[];
+  if (!apptCols.some((c) => c.name === "source")) {
+    sqlite.exec(
+      "ALTER TABLE appointments ADD COLUMN source TEXT NOT NULL DEFAULT 'manual'"
+    );
+  }
 }
 
 const sqlite = globalForDb.tipulogSqlite ?? createConnection();

@@ -48,6 +48,7 @@ export const appointments = sqliteTable("appointments", {
   status: text("status").notNull().default("scheduled"),
   price: real("price").notNull().default(0),
   note: text("note"),
+  source: text("source").notNull().default("manual"), // manual | whatsapp
   createdAt: text("created_at")
     .notNull()
     .default(sql`(datetime('now'))`),
@@ -98,9 +99,53 @@ export const payments = sqliteTable("payments", {
     .default(sql`(datetime('now'))`),
 });
 
+export const documents = sqliteTable("documents", {
+  id: integer("id").primaryKey({ autoIncrement: true }),
+  userId: integer("user_id")
+    .notNull()
+    .references(() => users.id),
+  patientId: integer("patient_id")
+    .notNull()
+    .references(() => patients.id),
+  fileName: text("file_name").notNull(),
+  storedKey: text("stored_key").notNull(),
+  mimeType: text("mime_type").notNull(),
+  size: integer("size").notNull(),
+  storage: text("storage").notNull().default("local"), // local | s3
+  createdAt: text("created_at")
+    .notNull()
+    .default(sql`(datetime('now'))`),
+});
+
+export const settings = sqliteTable("settings", {
+  userId: integer("user_id")
+    .primaryKey()
+    .references(() => users.id),
+  whatsappEnabled: integer("whatsapp_enabled").notNull().default(0),
+  whatsappNumber: text("whatsapp_number"),
+  workStart: text("work_start").notNull().default("09:00"),
+  workEnd: text("work_end").notNull().default("17:00"),
+  slotMinutes: integer("slot_minutes").notNull().default(60),
+  defaultPrice: real("default_price").notNull().default(350),
+});
+
+export const whatsappSessions = sqliteTable("whatsapp_sessions", {
+  id: integer("id").primaryKey({ autoIncrement: true }),
+  userId: integer("user_id")
+    .notNull()
+    .references(() => users.id),
+  phone: text("phone").notNull(),
+  state: text("state").notNull().default("{}"), // JSON conversation state
+  updatedAt: text("updated_at")
+    .notNull()
+    .default(sql`(datetime('now'))`),
+});
+
 export type User = typeof users.$inferSelect;
 export type Patient = typeof patients.$inferSelect;
 export type Appointment = typeof appointments.$inferSelect;
 export type SessionNote = typeof sessionNotes.$inferSelect;
 export type NoteTemplate = typeof noteTemplates.$inferSelect;
 export type Payment = typeof payments.$inferSelect;
+export type Document = typeof documents.$inferSelect;
+export type Settings = typeof settings.$inferSelect;

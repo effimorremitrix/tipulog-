@@ -55,6 +55,9 @@ export default async function AppointmentPage({
         <Badge className={APPOINTMENT_STATUS_COLORS[appointment.status]}>
           {label(APPOINTMENT_STATUSES, appointment.status)}
         </Badge>
+        {appointment.source === "whatsapp" && (
+          <Badge className="bg-green-100 text-green-800 border-green-300">💬 נקבע בוואטסאפ</Badge>
+        )}
         {appointment.status === "scheduled" && (
           <>
             <form action={setAppointmentStatus.bind(null, appointment.id, "completed", backTo)}>

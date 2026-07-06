@@ -6,6 +6,7 @@ import {
   patients,
   payments,
   sessionNotes,
+  settings,
   users,
 } from "./schema";
 
@@ -36,6 +37,16 @@ async function main() {
       clinicName: "קליניקת דנה לוי",
     })
     .returning();
+
+  await db.insert(settings).values({
+    userId: user.id,
+    whatsappEnabled: 1,
+    whatsappNumber: "+972500000000",
+    workStart: "09:00",
+    workEnd: "17:00",
+    slotMinutes: 60,
+    defaultPrice: 350,
+  });
 
   const patientRows = await db
     .insert(patients)

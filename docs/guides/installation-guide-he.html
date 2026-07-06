@@ -166,7 +166,28 @@ pm2 save</pre>
     <tr><th>משתנה</th><th>ברירת מחדל</th><th>תפקיד</th></tr>
     <tr><td><code>SESSION_SECRET</code></td><td>מפתח פיתוח מובנה</td><td>מפתח חתימת ההתחברות. חובה להגדיר ערך אקראי ארוך משלכם בשימוש אמיתי.</td></tr>
     <tr><td><code>DATABASE_FILE</code></td><td><code>./data/tipulog.db</code></td><td>מיקום קובץ הנתונים. אפשר להפנות לתיקייה מגובה (למשל תיקיית ענן מסונכרנת).</td></tr>
+    <tr><td><code>UPLOADS_DIR</code></td><td><code>./data/uploads</code></td><td>תיקיית המסמכים המקומית (לשונית "מסמכים" בתיק המטופל).</td></tr>
+    <tr><td><code>STORAGE_DRIVER</code></td><td><code>local</code></td><td>הגדירו <code>s3</code> לשמירת מסמכים באחסון ענן תואם S3.</td></tr>
+    <tr><td><code>TWILIO_AUTH_TOKEN</code></td><td>–</td><td>אימות חתימה של הודעות וואטסאפ נכנסות (Twilio).</td></tr>
   </table>
+  <h2>אחסון מסמכים בענן (S3 / R2)</h2>
+  <p>כברירת מחדל מסמכים נשמרים מקומית. לשמירה בענן הגדירו ספק אחסון תואם S3 – למשל Amazon S3, Cloudflare R2, Backblaze B2 או MinIO:</p>
+  <pre>STORAGE_DRIVER=s3
+S3_BUCKET=tipulog-documents
+S3_REGION=auto
+S3_ACCESS_KEY_ID=xxxxxxxx
+S3_SECRET_ACCESS_KEY=xxxxxxxx
+# רק לספקים שאינם AWS (למשל Cloudflare R2):
+S3_ENDPOINT=https://&lt;account-id&gt;.r2.cloudflarestorage.com</pre>
+  <p>מסמכים שהועלו לפני המעבר לענן יישארו זמינים מהאחסון המקומי; חדשים יישמרו בענן.</p>
+  <h2>חיבור וואטסאפ (Twilio)</h2>
+  <p>הבוט לקביעת תורים פועל מיידית בסימולטור שבעמוד "וואטסאפ" במערכת. לקבלת הודעות אמיתיות:</p>
+  <ol>
+    <li>פתחו חשבון Twilio והפעילו WhatsApp Sender (מספר עסקי מאושר).</li>
+    <li>הפכו את המערכת לנגישה מהאינטרנט בכתובת HTTPS (למשל שרת עם דומיין, או ngrok לבדיקות).</li>
+    <li>ב-Twilio, הגדירו את Webhook ההודעות הנכנסות ל: <code>https://your-domain/api/whatsapp/webhook</code> (POST).</li>
+    <li>הגדירו במערכת את <code>TWILIO_AUTH_TOKEN</code> כדי לאמת שהבקשות מגיעות מ-Twilio, ובעמוד "וואטסאפ" הזינו את מספר הקליניקה והפעילו את השירות.</li>
+  </ol>
   <p>דוגמה לקובץ <code>.env</code>:</p>
   <pre>SESSION_SECRET=replace-with-a-long-random-string
 DATABASE_FILE=./data/tipulog.db</pre>

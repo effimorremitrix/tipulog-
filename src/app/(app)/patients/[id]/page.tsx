@@ -2,7 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { and, desc, eq } from "drizzle-orm";
 import { db } from "@/db";
-import { appointments, noteTemplates, patients, payments, sessionNotes } from "@/db/schema";
+import { appointments, documents, noteTemplates, patients, payments, sessionNotes } from "@/db/schema";
 import { requireUser } from "@/lib/auth";
 import { formatDate, formatMoney, todayISO } from "@/lib/format";
 import {
@@ -17,12 +17,19 @@ import { getPatientBalance } from "@/lib/queries";
 import { Badge, Button, Card, EmptyState, Field, LinkButton, PageHeader, inputClass } from "@/components/ui";
 import { PatientForm } from "@/components/patient-form";
 import { createPayment } from "../../payments/actions";
-import { createSessionNote, deleteSessionNote, updatePatient } from "../actions";
+import {
+  createSessionNote,
+  deleteDocument,
+  deleteSessionNote,
+  updatePatient,
+  uploadDocument,
+} from "../actions";
 
 const TABS = [
   { key: "details", label: "פרטים אישיים" },
   { key: "appointments", label: "פגישות" },
   { key: "notes", label: "סיכומי טיפול" },
+  { key: "documents", label: "מסמכים" },
   { key: "payments", label: "תשלומים" },
 ] as const;
 
@@ -118,6 +125,7 @@ export default async function PatientPage({
       {tab === "notes" && (
         <NotesTab userId={user.id} patientId={patient.id} templateId={template} />
       )}
+      {tab === "documents" && <DocumentsTab userId={user.id} patientId={patient.id} />}
       {tab === "payments" && (
         <PaymentsTab userId={user.id} patientId={patient.id} balance={balance} />
       )}
@@ -262,6 +270,90 @@ async function NotesTab({
           </Card>
         ))
       )}
+    </div>
+  );
+}
+
+function formatSize(bytes: number): string {
+  if (bytes < 1024) return `${bytes} B`;
+  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(0)} KB`;
+  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+}
+
+async function DocumentsTab({ userId, patientId }: { userId: number; patientId: number }) {
+  const rows = await db
+    .select()
+    .from(documents)
+    .where(and(eq(documents.userId, userId), eq(documents.patientId, patientId)))
+    .orderBy(desc(documents.createdAt), desc(documents.id));
+
+  return (
+    <div className="space-y-6">
+      <Card className="p-6">
+        <h2 className="font-bold mb-4">העלאת מסמך</h2>
+        <form action={uploadDocument} className="flex flex-wrap items-end gap-4">
+          <input type="hidden" name="patientId" value={patientId} />
+          <Field label="קובץ (עד 20MB)">
+            <input type="file" name="file" required className={inputClass} />
+          </Field>
+          <div>
+            <Button>העלאה</Button>
+          </div>
+        </form>
+        <p className="text-xs text-gray-400 mt-3">
+          המסמכים נשמרים בתיקיית הנתונים המקומית, או באחסון ענן (S3 / R2) אם הוגדר – ראו README.
+        </p>
+      </Card>
+
+      <Card>
+        {rows.length === 0 ? (
+          <EmptyState message="אין מסמכים עדיין" />
+        ) : (
+          <table className="w-full text-sm">
+            <thead>
+              <tr className="text-right text-gray-500 border-b border-gray-200">
+                <th className="px-4 py-3 font-medium">שם קובץ</th>
+                <th className="px-4 py-3 font-medium">גודל</th>
+                <th className="px-4 py-3 font-medium">אחסון</th>
+                <th className="px-4 py-3 font-medium">הועלה בתאריך</th>
+                <th className="px-4 py-3 font-medium"></th>
+              </tr>
+            </thead>
+            <tbody>
+              {rows.map((d) => (
+                <tr key={d.id} className="border-b border-gray-100 last:border-0 hover:bg-gray-50">
+                  <td className="px-4 py-3">
+                    <a
+                      href={`/api/documents/${d.id}`}
+                      className="text-primary-dark hover:underline font-medium"
+                    >
+                      📎 {d.fileName}
+                    </a>
+                  </td>
+                  <td className="px-4 py-3">{formatSize(d.size)}</td>
+                  <td className="px-4 py-3">
+                    <Badge
+                      className={
+                        d.storage === "s3"
+                          ? "bg-sky-100 text-sky-800 border-sky-300"
+                          : "bg-gray-100 text-gray-600 border-gray-300"
+                      }
+                    >
+                      {d.storage === "s3" ? "ענן" : "מקומי"}
+                    </Badge>
+                  </td>
+                  <td className="px-4 py-3">{formatDate(d.createdAt.slice(0, 10))}</td>
+                  <td className="px-4 py-3">
+                    <form action={deleteDocument.bind(null, d.id, patientId)}>
+                      <button className="text-xs text-red-500 hover:underline">מחיקה</button>
+                    </form>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        )}
+      </Card>
     </div>
   );
 }
