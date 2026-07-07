@@ -2,7 +2,7 @@
 <html lang="he" dir="rtl">
 <head>
 <meta charset="utf-8">
-<title>טיפולוג – מדריך התקנה מקומית</title>
+<title>טיפולוג – מדריך התקנה: מקומית ובאינטרנט</title>
 <style>
   * { box-sizing: border-box; }
   body {
@@ -62,8 +62,9 @@
 <div class="title-page">
   <div class="logo">טיפולוג</div>
   <div class="subtitle">מערכת ניהול קליניקה למטפלים פרטיים</div>
-  <div class="doc-type">מדריך התקנה והפעלה מקומית</div>
-  <div class="version">גרסה 1.0 · יולי 2026</div>
+  <div class="doc-type">מדריך התקנה והפעלה</div>
+  <div class="subtitle" style="font-size:12pt; margin-top:4mm;">חלק א׳: התקנה מקומית · חלק ב׳: פריסה כאתר אינטרנט</div>
+  <div class="version">גרסה 1.1 · יולי 2026</div>
 </div>
 
 <div class="chapter">
@@ -78,6 +79,14 @@
     <li>גיבוי ושחזור נתונים</li>
     <li>פתרון תקלות נפוצות</li>
   </ol>
+  <h1 style="margin-top:10mm">חלק ב׳ – פריסה כאתר אינטרנט</h1>
+  <ol class="toc" start="9">
+    <li>בחירת דרך הפריסה</li>
+    <li>פריסה על שרת VPS – מדריך מלא (מומלץ)</li>
+    <li>פריסה עם Docker</li>
+    <li>פריסה על Railway / Render (ללא שרת משלכם)</li>
+    <li>צ׳ק־ליסט לפרודקשן</li>
+  </ol>
 </div>
 
 <div class="chapter">
@@ -88,7 +97,7 @@
     <li>כל הנתונים נשמרים בקובץ <b>SQLite</b> יחיד: <code>data/tipulog.db</code> בתוך תיקיית הפרויקט. הקובץ נוצר אוטומטית בהפעלה הראשונה.</li>
     <li>הגישה למערכת היא דרך הדפדפן, בכתובת <code>http://localhost:3000</code>.</li>
   </ul>
-  <div class="tip"><b>המשמעות:</b> הנתונים הרפואיים נשארים אצלכם במחשב בלבד. גיבוי = העתקת קובץ אחד (ראו פרק 7).</div>
+  <div class="tip"><b>המשמעות:</b> בהתקנה מקומית הנתונים הרפואיים נשארים אצלכם במחשב בלבד, וגיבוי = העתקת קובץ אחד (פרק 7). רוצים גישה מכל מקום ובוט וואטסאפ אמיתי? חלק ב׳ (פרקים 9–13) מסביר איך לפרוס את המערכת כאתר אינטרנט.</div>
 </div>
 
 <div class="chapter">
@@ -247,6 +256,134 @@ npm run db:seed      # לא חובה – טעינת נתוני דגמה מחדש
 npm run dev</pre>
   <h2>‏המסך נטען אך מוצג שיבוש בעברית</h2>
   <p>ודאו שהדפדפן עדכני (Chrome / Edge / Firefox / Safari בגרסאות האחרונות). המערכת נבדקה בעיקר ב-Chrome.</p>
+</div>
+
+<div class="chapter">
+  <h1>9. בחירת דרך הפריסה</h1>
+  <p>כדי שהמערכת תהיה זמינה כאתר אינטרנט – מכל מחשב ונייד, וגם כדי ש-Twilio יוכל לשלוח אליה הודעות וואטסאפ – יש לפרוס אותה על שרת עם כתובת ציבורית. חשוב להבין אילוץ אחד:</p>
+  <div class="warn"><b>אילוץ מרכזי:</b> המערכת שומרת את הנתונים בקובץ SQLite ואת המסמכים בתיקייה מקומית. לכן היא צריכה שרת עם <b>דיסק קבוע ותהליך רץ</b>. פלטפורמות Serverless כמו Vercel <b>אינן נתמכות</b> כפי שהמערכת בנויה היום (הדיסק שלהן נמחק בכל בקשה).</div>
+  <table>
+    <tr><th>דרך</th><th>למי מתאימה</th><th>עלות אופיינית</th></tr>
+    <tr><td><b>שרת VPS</b> (פרק 10)</td><td>שליטה מלאה, ביצועים, מחיר קבוע. הדרך המומלצת לקליניקה.</td><td>‎5–12$ לחודש (Hetzner / DigitalOcean / Lightsail)</td></tr>
+    <tr><td><b>Docker</b> (פרק 11)</td><td>מי שכבר מריץ שרת עם Docker, או NAS ביתי.</td><td>לפי השרת הקיים</td></tr>
+    <tr><td><b>Railway / Render</b> (פרק 12)</td><td>הקמה הכי מהירה, בלי ניהול שרת – בלחיצות עכבר.</td><td>‎5–10$ לחודש כולל דיסק קבוע</td></tr>
+  </table>
+  <p>בכל הדרכים חובה: דומיין (או תת-דומיין) שמפנה לשרת, ו-HTTPS. מדובר במידע רפואי – אל תפעילו את המערכת על HTTP גלוי.</p>
+</div>
+
+<div class="chapter">
+  <h1>10. פריסה על שרת VPS – מדריך מלא (מומלץ)</h1>
+  <p>הדוגמאות עבור Ubuntu 24.04. השלבים זהים בכל ספק ענן (Hetzner, DigitalOcean, AWS Lightsail, Linode).</p>
+  <h2>שלב 1 – שרת ודומיין</h2>
+  <ol>
+    <li>צרו שרת (Droplet/Instance) עם Ubuntu, ‏1GB זיכרון ומעלה, ורשמו את כתובת ה-IP שלו.</li>
+    <li>אצל רשם הדומיין שלכם צרו רשומת <code>A</code> שמפנה את הדומיין (למשל <code>clinic.example.co.il</code>) לכתובת ה-IP.</li>
+    <li>התחברו לשרת: <code>ssh root@YOUR-IP</code></li>
+  </ol>
+  <h2>שלב 2 – התקנת Node והמערכת</h2>
+  <pre>apt update && apt upgrade -y
+curl -fsSL https://deb.nodesource.com/setup_22.x | bash -
+apt install -y nodejs git nginx
+git clone https://github.com/effimorremitrix/tipulog-.git /opt/tipulog
+cd /opt/tipulog
+npm ci
+npm run build</pre>
+  <h2>שלב 3 – משתני סביבה והרצה כשירות (pm2)</h2>
+  <pre>cd /opt/tipulog
+cat > .env << 'EOF'
+SESSION_SECRET=PASTE-A-LONG-RANDOM-STRING-HERE
+EOF
+npm install -g pm2
+pm2 start npm --name tipulog -- start
+pm2 startup   # מדפיס פקודה – הריצו אותה כדי שהשירות יעלה אחרי ריסטרט
+pm2 save</pre>
+  <p>יצירת מחרוזת אקראית: <code>node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"</code></p>
+  <h2>שלב 4 – Nginx כ-Reverse Proxy</h2>
+  <pre>cat > /etc/nginx/sites-available/tipulog << 'EOF'
+server {
+    listen 80;
+    server_name clinic.example.co.il;
+    client_max_body_size 25m;   # העלאת מסמכים עד 20MB
+    location / {
+        proxy_pass http://127.0.0.1:3000;
+        proxy_set_header Host $host;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_set_header X-Real-IP $remote_addr;
+    }
+}
+EOF
+ln -s /etc/nginx/sites-available/tipulog /etc/nginx/sites-enabled/
+nginx -t && systemctl reload nginx</pre>
+  <h2>שלב 5 – HTTPS חינם עם Certbot</h2>
+  <pre>apt install -y certbot python3-certbot-nginx
+certbot --nginx -d clinic.example.co.il</pre>
+  <p>Certbot מגדיר HTTPS ומחדש את התעודה אוטומטית. מרגע זה המערכת זמינה ב-<code>https://clinic.example.co.il</code>.</p>
+  <h2>שלב 6 – חומת אש</h2>
+  <pre>ufw allow OpenSSH
+ufw allow 'Nginx Full'
+ufw enable</pre>
+  <h2>עדכון גרסה בהמשך</h2>
+  <pre>cd /opt/tipulog
+git pull
+npm ci && npm run build
+pm2 restart tipulog</pre>
+  <div class="tip"><b>גיבוי בשרת:</b> אותו עיקרון כמו מקומית – גבו את <code>/opt/tipulog/data</code> (קובץ הנתונים והמסמכים). למשל cron יומי שמעתיק ל-S3 או למחשב אחר.</div>
+</div>
+
+<div class="chapter">
+  <h1>11. פריסה עם Docker</h1>
+  <p>המאגר כולל <code>Dockerfile</code> ו-<code>docker-compose.yml</code> מוכנים. הנתונים נשמרים ב-Volume בשם <code>tipulog-data</code>, כך שעדכון גרסה לא מוחק כלום.</p>
+  <h2>עם docker compose (מומלץ)</h2>
+  <pre>git clone https://github.com/effimorremitrix/tipulog-.git
+cd tipulog-
+SESSION_SECRET=$(node -e "console.log(require('crypto').randomBytes(32).toString('hex'))") \
+  docker compose up -d --build</pre>
+  <h2>או ידנית</h2>
+  <pre>docker build -t tipulog .
+docker run -d --name tipulog -p 3000:3000 \
+  -v tipulog-data:/app/data \
+  -e SESSION_SECRET=PASTE-A-LONG-RANDOM-STRING \
+  --restart unless-stopped tipulog</pre>
+  <p>מול האינטרנט העמידו Nginx/Caddy עם HTTPS כמו בפרק 10 (שלבים 4–6), או כל Load Balancer של ספק הענן.</p>
+  <h2>עדכון גרסה</h2>
+  <pre>cd tipulog-
+git pull
+docker compose up -d --build</pre>
+</div>
+
+<div class="chapter">
+  <h1>12. פריסה על Railway / Render (ללא שרת משלכם)</h1>
+  <p>שתי הפלטפורמות בונות את האפליקציה ישירות מ-GitHub ותומכות בדיסק קבוע (Volume) – בדיוק מה שהמערכת צריכה. ההקמה כולה בדפדפן.</p>
+  <h2>Railway</h2>
+  <ol>
+    <li>היכנסו ל-<code>railway.app</code> עם חשבון GitHub ובחרו <b>New Project → Deploy from GitHub repo</b> ואת המאגר.</li>
+    <li>Railway מזהה את ה-Dockerfile ובונה אוטומטית.</li>
+    <li>ב-Settings → <b>Volumes</b> הוסיפו Volume עם Mount Path: <code>/app/data</code> (חובה! בלי זה הנתונים יימחקו בכל פריסה).</li>
+    <li>ב-<b>Variables</b> הגדירו <code>SESSION_SECRET</code> (ואת משתני Twilio/S3 אם רלוונטי).</li>
+    <li>ב-Settings → <b>Networking</b> צרו דומיין ציבורי או חברו דומיין משלכם.</li>
+  </ol>
+  <h2>Render</h2>
+  <ol>
+    <li>ב-<code>render.com</code> בחרו <b>New → Web Service</b> וחברו את המאגר (זיהוי Docker אוטומטי).</li>
+    <li>בחרו תוכנית עם <b>Persistent Disk</b> והגדירו Mount Path: <code>/app/data</code>.</li>
+    <li>הגדירו <code>SESSION_SECRET</code> ב-Environment, וחברו דומיין ב-Custom Domains (HTTPS אוטומטי).</li>
+  </ol>
+  <div class="warn"><b>שימו לב:</b> בתוכניות חינמיות השירות "נרדם" חוסר פעילות – תזכורות הוואטסאפ האוטומטיות לא יישלחו בזמן. לקליניקה אמיתית בחרו תוכנית בתשלום (החל מ-‎~5$), או הגדירו cron חיצוני שקורא ל-<code>/api/reminders/run</code> (פרק 6).</div>
+</div>
+
+<div class="chapter">
+  <h1>13. צ׳ק־ליסט לפרודקשן</h1>
+  <table>
+    <tr><th></th><th>פריט</th><th>פירוט</th></tr>
+    <tr><td>☐</td><td><b>SESSION_SECRET</b> ייחודי</td><td>מחרוזת אקראית ארוכה. לעולם לא ברירת המחדל.</td></tr>
+    <tr><td>☐</td><td><b>HTTPS בלבד</b></td><td>תעודה בתוקף (Certbot / דומיין מנוהל). מידע רפואי אינו עובר על HTTP.</td></tr>
+    <tr><td>☐</td><td><b>גיבוי יומי</b></td><td>תיקיית <code>data/</code> (בסיס נתונים + מסמכים) למיקום חיצוני לשרת.</td></tr>
+    <tr><td>☐</td><td><b>Webhook וואטסאפ</b></td><td>ב-Twilio: הפניית הודעות נכנסות ל-<code>https://הדומיין/api/whatsapp/webhook</code>, והגדרת <code>TWILIO_AUTH_TOKEN</code> + <code>WHATSAPP_WEBHOOK_URL</code> במערכת.</td></tr>
+    <tr><td>☐</td><td><b>תזכורות יוצאות</b></td><td><code>TWILIO_ACCOUNT_SID</code>, <code>TWILIO_AUTH_TOKEN</code>, <code>TWILIO_WHATSAPP_FROM</code>. בפלטפורמות שמרדימות את השירות – cron חיצוני עם <code>REMINDERS_CRON_SECRET</code>.</td></tr>
+    <tr><td>☐</td><td><b>אחסון מסמכים</b></td><td>בשרת יחיד מספיק הדיסק המקומי; לחוסן גבוה הגדירו S3/R2 (פרק 6).</td></tr>
+    <tr><td>☐</td><td><b>עדכוני מערכת</b></td><td>עדכוני אבטחה לשרת (<code>apt upgrade</code>) ולאפליקציה (git pull → build → restart).</td></tr>
+    <tr><td>☐</td><td><b>בדיקת קצה</b></td><td>אחרי הפריסה: הרשמה, קביעת פגישה, העלאת מסמך, סימולטור וואטסאפ ותזכורת ניסיון.</td></tr>
+  </table>
 </div>
 
 </body>

@@ -92,6 +92,23 @@ reminders go out automatically every 5 minutes (see `src/instrumentation.ts`); f
 deployments point a cron at `POST /api/reminders/run` with the `x-cron-secret` header. The
 last 10 reminders and their delivery status are shown at the bottom of the screen.
 
+## Deployment (web)
+
+The app stores its data in a SQLite file plus a local uploads directory, so it needs a host
+with a **persistent disk and a long-running Node process** (serverless platforms like Vercel
+are not supported as-is):
+
+- **VPS (recommended)** – Node 22 + pm2 + Nginx + Certbot HTTPS. Full Hebrew walkthrough in
+  `docs/installation-guide-he.pdf` (chapters 9–13).
+- **Docker** – `Dockerfile` + `docker-compose.yml` included; data persists in the
+  `tipulog-data` volume mounted at `/app/data`.
+- **Railway / Render** – deploy straight from GitHub (Dockerfile auto-detected); add a
+  persistent volume mounted at `/app/data` and set `SESSION_SECRET`.
+
+Production checklist: unique `SESSION_SECRET`, HTTPS only, daily backup of `data/`, Twilio
+webhook pointed at `https://your-domain/api/whatsapp/webhook`, and an external cron for
+reminders on platforms that sleep idle services.
+
 ## Project structure
 
 ```

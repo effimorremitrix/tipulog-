@@ -1,0 +1,19 @@
+services:
+  tipulog:
+    build: .
+    ports:
+      - "3000:3000"
+    environment:
+      SESSION_SECRET: ${SESSION_SECRET:?set a long random SESSION_SECRET}
+      # Optional integrations:
+      # TWILIO_ACCOUNT_SID: ${TWILIO_ACCOUNT_SID}
+      # TWILIO_AUTH_TOKEN: ${TWILIO_AUTH_TOKEN}
+      # TWILIO_WHATSAPP_FROM: ${TWILIO_WHATSAPP_FROM}
+      # STORAGE_DRIVER: s3
+      # S3_BUCKET: ...
+    volumes:
+      - tipulog-data:/app/data
+    restart: unless-stopped
+
+volumes:
+  tipulog-data:
