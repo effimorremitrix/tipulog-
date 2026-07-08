@@ -7,6 +7,8 @@ WORKDIR /app
 COPY package.json package-lock.json ./
 RUN npm ci
 COPY . .
+# public/ is empty and may be missing from a fresh git checkout
+RUN mkdir -p public
 RUN npm run build
 
 FROM node:22-slim
