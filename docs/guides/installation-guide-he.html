@@ -85,6 +85,7 @@
     <li>פריסה על שרת VPS – מדריך מלא (מומלץ)</li>
     <li>פריסה עם Docker</li>
     <li>פריסה על Railway / Render (ללא שרת משלכם)</li>
+    <li>חיבור Twilio – בוט וואטסאפ נכנס ותזכורות יוצאות</li>
     <li>צ׳ק־ליסט לפרודקשן</li>
   </ol>
 </div>
@@ -189,21 +190,8 @@ S3_SECRET_ACCESS_KEY=xxxxxxxx
 # רק לספקים שאינם AWS (למשל Cloudflare R2):
 S3_ENDPOINT=https://&lt;account-id&gt;.r2.cloudflarestorage.com</pre>
   <p>מסמכים שהועלו לפני המעבר לענן יישארו זמינים מהאחסון המקומי; חדשים יישמרו בענן.</p>
-  <h2>חיבור וואטסאפ (Twilio)</h2>
-  <p>הבוט לקביעת תורים פועל מיידית בסימולטור שבעמוד "וואטסאפ" במערכת. לקבלת הודעות אמיתיות:</p>
-  <ol>
-    <li>פתחו חשבון Twilio והפעילו WhatsApp Sender (מספר עסקי מאושר).</li>
-    <li>הפכו את המערכת לנגישה מהאינטרנט בכתובת HTTPS (למשל שרת עם דומיין, או ngrok לבדיקות).</li>
-    <li>ב-Twilio, הגדירו את Webhook ההודעות הנכנסות ל: <code>https://your-domain/api/whatsapp/webhook</code> (POST).</li>
-    <li>הגדירו במערכת את <code>TWILIO_AUTH_TOKEN</code> כדי לאמת שהבקשות מגיעות מ-Twilio, ובעמוד "וואטסאפ" הזינו את מספר הקליניקה והפעילו את השירות.</li>
-  </ol>
-  <h2>תזכורות וואטסאפ יוצאות</h2>
-  <p>לשליחת תזכורות אמיתיות (ולא במצב סימולציה) הגדירו גם:</p>
-  <pre>TWILIO_ACCOUNT_SID=ACxxxxxxxx
-TWILIO_AUTH_TOKEN=xxxxxxxx
-TWILIO_WHATSAPP_FROM=+14155238886</pre>
-  <p>כשהשרת פעיל, תזכורות נשלחות אוטומטית כל 5 דקות. בפריסה ללא שרת קבוע (serverless) הפעילו משימה מתוזמנת שקוראת ל:</p>
-  <pre>curl -X POST -H "x-cron-secret: $REMINDERS_CRON_SECRET" https://your-domain/api/reminders/run</pre>
+  <h2>חיבורי וואטסאפ (Twilio)</h2>
+  <p>הבוט לקביעת תורים והתזכורות פועלים מיידית במצב סימולציה, ללא שום חיבור חיצוני. לחיבור וואטסאפ אמיתי – קבלת הודעות מהמטופלים ושליחת תזכורות – ראו את המדריך המלא בפרק 13.</p>
   <p>דוגמה לקובץ <code>.env</code>:</p>
   <pre>SESSION_SECRET=replace-with-a-long-random-string
 DATABASE_FILE=./data/tipulog.db</pre>
@@ -368,18 +356,94 @@ docker compose up -d --build</pre>
     <li>בחרו תוכנית עם <b>Persistent Disk</b> והגדירו Mount Path: <code>/app/data</code>.</li>
     <li>הגדירו <code>SESSION_SECRET</code> ב-Environment, וחברו דומיין ב-Custom Domains (HTTPS אוטומטי).</li>
   </ol>
-  <div class="warn"><b>שימו לב:</b> בתוכניות חינמיות השירות "נרדם" חוסר פעילות – תזכורות הוואטסאפ האוטומטיות לא יישלחו בזמן. לקליניקה אמיתית בחרו תוכנית בתשלום (החל מ-‎~5$), או הגדירו cron חיצוני שקורא ל-<code>/api/reminders/run</code> (פרק 6).</div>
+  <div class="warn"><b>שימו לב:</b> בתוכניות חינמיות השירות "נרדם" חוסר פעילות – תזכורות הוואטסאפ האוטומטיות לא יישלחו בזמן. לקליניקה אמיתית בחרו תוכנית בתשלום (החל מ-‎~5$), או הגדירו cron חיצוני שקורא ל-<code>/api/reminders/run</code> (פרק 13).</div>
 </div>
 
 <div class="chapter">
-  <h1>13. צ׳ק־ליסט לפרודקשן</h1>
+  <h1>13. חיבור Twilio – בוט וואטסאפ נכנס ותזכורות יוצאות</h1>
+  <p>פרק זה מחבר את המערכת לוואטסאפ אמיתי דרך Twilio, בשני כיוונים:</p>
+  <ul>
+    <li><b>נכנס (Webhook):</b> מטופלים שולחים הודעה למספר הקליניקה, והבוט קובע/מציג/מבטל תורים.</li>
+    <li><b>יוצא (תזכורות):</b> המערכת שולחת תזכורת וואטסאפ לפני כל תור.</li>
+  </ul>
+  <p><b>תנאי מקדים:</b> המערכת פרוסה בכתובת HTTPS ציבורית (פרקים 10–12). לבדיקות מקומיות בלבד אפשר לחשוף את המחשב זמנית עם <code>ngrok http 3000</code>.</p>
+
+  <h2>שלב 1 – חשבון Twilio ופרטי הגישה</h2>
+  <ol>
+    <li>פתחו חשבון ב-<code>twilio.com</code> (חינם לניסוי, עם קרדיט התחלתי).</li>
+    <li>ב-Console הראשי (Account Dashboard) העתיקו שני ערכים: <b>Account SID</b> (מתחיל ב-<code>AC</code>) ו-<b>Auth Token</b>. אלו המפתחות של החשבון – שמרו עליהם כמו על סיסמה.</li>
+  </ol>
+
+  <h2>שלב 2 – התחלה מהירה עם ה-Sandbox (מומלץ לבדיקה)</h2>
+  <p>ה-Sandbox של Twilio מאפשר לבדוק את הכול עוד לפני אישור מספר עסקי:</p>
+  <ol>
+    <li>ב-Console נווטו אל: <b>Messaging → Try it out → Send a WhatsApp message</b>.</li>
+    <li>יוצג מספר ה-Sandbox (בדרך כלל <code>+1 415 523 8886</code>) וקוד הצטרפות בסגנון <code>join two-words</code>.</li>
+    <li>מכל טלפון שישתתף בבדיקה (למשל הטלפון של מטופל ניסיון), שלחו בוואטסאפ את הודעת ההצטרפות למספר הזה. ב-Sandbox רק מספרים שהצטרפו יכולים להתכתב.</li>
+    <li>בלשונית <b>Sandbox settings</b>, בשדה <b>"When a message comes in"</b> הזינו:
+      <pre>https://your-domain/api/whatsapp/webhook</pre>
+      עם Method: <b>POST</b>, ולחצו Save.</li>
+  </ol>
+
+  <h2>שלב 3 – משתני הסביבה במערכת</h2>
+  <p>הוסיפו לשרת (קובץ <code>.env</code> ב-VPS, ‏Environment Variables ב-Render/Railway, או <code>docker-compose.yml</code>):</p>
+  <pre>TWILIO_ACCOUNT_SID=ACxxxxxxxxxxxxxxxx
+TWILIO_AUTH_TOKEN=xxxxxxxxxxxxxxxx
+TWILIO_WHATSAPP_FROM=+14155238886      # מספר ה-Sandbox, או המספר העסקי שלכם
+WHATSAPP_WEBHOOK_URL=https://your-domain/api/whatsapp/webhook</pre>
+  <table>
+    <tr><th>משתנה</th><th>נכנס (בוט)</th><th>יוצא (תזכורות)</th></tr>
+    <tr><td><code>TWILIO_AUTH_TOKEN</code></td><td>אימות חתימת הבקשות מ-Twilio</td><td>נדרש לשליחה</td></tr>
+    <tr><td><code>TWILIO_ACCOUNT_SID</code></td><td>–</td><td>נדרש לשליחה</td></tr>
+    <tr><td><code>TWILIO_WHATSAPP_FROM</code></td><td>–</td><td>המספר שממנו נשלחות התזכורות</td></tr>
+    <tr><td><code>WHATSAPP_WEBHOOK_URL</code></td><td>חובה מאחורי Proxy/Nginx – חייב להיות זהה בדיוק לכתובת שהוזנה ב-Twilio</td><td>–</td></tr>
+  </table>
+  <p>אחרי שינוי משתנים – הפעילו מחדש את השירות (<code>pm2 restart tipulog</code> / Redeploy).</p>
+
+  <h2>שלב 4 – הגדרות בתוך המערכת</h2>
+  <ol>
+    <li>היכנסו לעמוד <b>וואטסאפ</b> במערכת.</li>
+    <li>סמנו "הפעלת קביעת תורים בוואטסאפ" והזינו במספר הקליניקה את אותו מספר מ-<code>TWILIO_WHATSAPP_FROM</code> (למשל <code>+14155238886</code> ב-Sandbox).</li>
+    <li>סמנו "הפעלת תזכורות אוטומטיות" וקבעו כמה שעות מראש לשלוח.</li>
+    <li>ודאו שלמטופלי הבדיקה יש בתיק את מספר הטלפון הנכון – כך הבוט מזהה אותם.</li>
+  </ol>
+
+  <h2>שלב 5 – בדיקה</h2>
+  <ol>
+    <li><b>נכנס:</b> מהטלפון שהצטרף ל-Sandbox שלחו "שלום" למספר ה-Sandbox. אמור לחזור תפריט הבוט. השיבו 1 וקבעו תור – ובדקו שהוא הופיע ביומן עם הסימון "נקבע בוואטסאפ".</li>
+    <li><b>יוצא:</b> קבעו לאותו מטופל תור בטווח התזכורות ולחצו "⏰ שליחת תזכורות עכשיו". ביומן התזכורות בעמוד וואטסאפ הסטטוס צריך להיות <b>נשלחה</b> (ולא "סימולציה"), וההודעה להגיע לטלפון.</li>
+  </ol>
+
+  <h2>שלב 6 – מעבר לפרודקשן (מספר עסקי אמיתי)</h2>
+  <p>ה-Sandbox מוגבל למספרים שהצטרפו ידנית ואינו מתאים למטופלים אמיתיים. לפרודקשן:</p>
+  <ol>
+    <li>ב-Twilio: ‏<b>Messaging → Senders → WhatsApp senders → New sender</b>. תידרש התחברות ל-Meta Business וקישור מספר טלפון (אפשר לרכוש מספר מ-Twilio). אישור ה-Sender לוקח בדרך כלל מספר ימים.</li>
+    <li>לאחר האישור, הגדירו את ה-Webhook של ה-Sender (או של ה-Messaging Service שאליו הוא משויך) לאותה כתובת: <code>https://your-domain/api/whatsapp/webhook</code>.</li>
+    <li>עדכנו את <code>TWILIO_WHATSAPP_FROM</code> למספר העסקי, ואת "מספר הוואטסאפ של הקליניקה" בעמוד ההגדרות.</li>
+  </ol>
+  <div class="warn"><b>חשוב – חלון 24 השעות של WhatsApp:</b> וואטסאפ מתיר לעסק לשלוח הודעה חופשית רק בתוך 24 שעות מההודעה האחרונה של הלקוח. תזכורת שנשלחת מחוץ לחלון הזה חייבת להתבסס על <b>תבנית מאושרת (Content Template)</b>. צרו ב-Twilio ‏(Messaging → Content Template Builder) תבנית תואמת לנוסח התזכורת שהגדרתם במערכת והגישו לאישור Meta. ב-Sandbox המגבלה רופפת יותר ולכן הבדיקות עוברות – אל תסיקו מזה שהכול יעבוד בפרודקשן בלי תבנית.</div>
+
+  <h2>פתרון תקלות</h2>
+  <table>
+    <tr><th>תסמין</th><th>סיבה נפוצה ותיקון</th></tr>
+    <tr><td>הבוט לא עונה כלל</td><td>‏Webhook לא נשמר ב-Twilio, כתובת שגויה, או שהשירות לא נגיש ב-HTTPS. בדקו ב-Twilio ‏Monitor → Logs → Errors.</td></tr>
+    <tr><td>שגיאת <code>403 Invalid signature</code></td><td><code>WHATSAPP_WEBHOOK_URL</code> אינו זהה במדויק לכתובת שהוגדרה ב-Twilio (כולל https והנתיב). מאחורי Nginx/Proxy המשתנה הזה חובה.</td></tr>
+    <tr><td>"מספר הטלפון שלכם אינו מוכר"</td><td>מספר הטלפון בתיק המטופל שונה מהמספר השולח. המערכת משווה לאחר נרמול (‎+972 ↔ 0), אך המספר חייב להיות קיים בתיק.</td></tr>
+    <tr><td>תזכורות נשארות בסטטוס "סימולציה"</td><td>אחד משלושת משתני ה-Twilio חסר בשרת, או שהשירות לא הופעל מחדש אחרי הוספתם.</td></tr>
+    <tr><td>תזכורת בסטטוס "נכשלה" עם שגיאת 63016</td><td>ההודעה נשלחה מחוץ לחלון 24 השעות ללא תבנית מאושרת – ראו האזהרה למעלה.</td></tr>
+    <tr><td>ההודעות מגיעות באיחור (Render/Railway)</td><td>בתוכנית חינמית השירות נרדם. שדרגו תוכנית או הגדירו cron חיצוני ל-<code>/api/reminders/run</code> עם <code>REMINDERS_CRON_SECRET</code>.</td></tr>
+  </table>
+</div>
+
+<div class="chapter">
+  <h1>14. צ׳ק־ליסט לפרודקשן</h1>
   <table>
     <tr><th></th><th>פריט</th><th>פירוט</th></tr>
     <tr><td>☐</td><td><b>SESSION_SECRET</b> ייחודי</td><td>מחרוזת אקראית ארוכה. לעולם לא ברירת המחדל.</td></tr>
     <tr><td>☐</td><td><b>HTTPS בלבד</b></td><td>תעודה בתוקף (Certbot / דומיין מנוהל). מידע רפואי אינו עובר על HTTP.</td></tr>
     <tr><td>☐</td><td><b>גיבוי יומי</b></td><td>תיקיית <code>data/</code> (בסיס נתונים + מסמכים) למיקום חיצוני לשרת.</td></tr>
-    <tr><td>☐</td><td><b>Webhook וואטסאפ</b></td><td>ב-Twilio: הפניית הודעות נכנסות ל-<code>https://הדומיין/api/whatsapp/webhook</code>, והגדרת <code>TWILIO_AUTH_TOKEN</code> + <code>WHATSAPP_WEBHOOK_URL</code> במערכת.</td></tr>
-    <tr><td>☐</td><td><b>תזכורות יוצאות</b></td><td><code>TWILIO_ACCOUNT_SID</code>, <code>TWILIO_AUTH_TOKEN</code>, <code>TWILIO_WHATSAPP_FROM</code>. בפלטפורמות שמרדימות את השירות – cron חיצוני עם <code>REMINDERS_CRON_SECRET</code>.</td></tr>
+    <tr><td>☐</td><td><b>Webhook וואטסאפ</b></td><td>ב-Twilio: הפניית הודעות נכנסות ל-<code>https://הדומיין/api/whatsapp/webhook</code>, והגדרת <code>TWILIO_AUTH_TOKEN</code> + <code>WHATSAPP_WEBHOOK_URL</code> במערכת (מדריך מלא: פרק 13).</td></tr>
+    <tr><td>☐</td><td><b>תזכורות יוצאות</b></td><td><code>TWILIO_ACCOUNT_SID</code>, <code>TWILIO_AUTH_TOKEN</code>, <code>TWILIO_WHATSAPP_FROM</code> + תבנית מאושרת לפרודקשן (פרק 13). בפלטפורמות שמרדימות את השירות – cron חיצוני עם <code>REMINDERS_CRON_SECRET</code>.</td></tr>
     <tr><td>☐</td><td><b>אחסון מסמכים</b></td><td>בשרת יחיד מספיק הדיסק המקומי; לחוסן גבוה הגדירו S3/R2 (פרק 6).</td></tr>
     <tr><td>☐</td><td><b>עדכוני מערכת</b></td><td>עדכוני אבטחה לשרת (<code>apt upgrade</code>) ולאפליקציה (git pull → build → restart).</td></tr>
     <tr><td>☐</td><td><b>בדיקת קצה</b></td><td>אחרי הפריסה: הרשמה, קביעת פגישה, העלאת מסמך, סימולטור וואטסאפ ותזכורת ניסיון.</td></tr>
